@@ -53,7 +53,13 @@ export default {
 
       // Fetch the target
       const response = await fetch(forwardRequest);
-      const responseBody = await response.text();
+      let responseBody = await response.text();
+
+      // Rewrite URLs in HTML responses
+      const contentType = response.headers.get('Content-Type') || '';
+      if (contentType.includes('text/html')) {
+        responseBody = rewriteUrls(responseBody, targetUrl, request.url);
+      }
 
       // Build response headers with CORS
       const responseHeaders = new Headers(response.headers);
@@ -86,4 +92,26 @@ function isValidUrl(urlString) {
   } catch (e) {
     return false;
   }
+}
+
+function rewriteUrls(html, targetUrl, proxyUrl) {
+  const targetOrigin = new URL(targetUrl).origin;
+  const proxyOrigin = new URL(proxyUrl).origin;
+
+  // Rewrite href attributes
+  html = html.replace(/href=["'](?!(?:https?:|\/\/|data:|javascript:|mailto:))/g, (match) => {
+    return match.slice(0, -1) + proxyOrigin + '/?url=' + encodeURIComponent(targetOrigin) + '/';
+  });
+
+  // Rewrite src attributes
+  html = html.replace(/src=["'](?!(?:https?:|\/\/|data:|javascript:))/g, (match) => {
+    return match.slice(0, -1) + proxyOrigin + '/?url=' + encodeURIComponent(targetOrigin) + '/';
+  });
+
+  // Rewrite absolute URLs starting with /
+  html = html.replace(/(?:href|src)=["'](\/[^"']*)/g, (match, path) => {
+    return match.split('=')[0] + '="' + proxyOrigin + '/?url=' + encodeURIComponent(targetOrigin + path);
+  });
+
+  return html;
 }
