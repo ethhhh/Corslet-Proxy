@@ -55,10 +55,11 @@ export default {
       const response = await fetch(forwardRequest);
       let responseBody = await response.text();
 
-      // Rewrite URLs in HTML responses
+      // Rewrite URLs in HTML responses and inject meta tag
       const contentType = response.headers.get('Content-Type') || '';
       if (contentType.includes('text/html')) {
         responseBody = rewriteUrls(responseBody, targetUrl, request.url);
+        responseBody = injectMetaTag(responseBody);
       }
 
       // Build response headers with CORS
@@ -114,4 +115,21 @@ function rewriteUrls(html, targetUrl, proxyUrl) {
   });
 
   return html;
+}
+
+function injectMetaTag(html) {
+  const metaTag = '<meta name="google-site-verification" content="QZePxQi84t70H06b6jHGiZ51fbfFsvLCQTZ7drDH3DA" />';
+  
+  // Try to inject after <head> tag
+  if (html.includes('<head>')) {
+    return html.replace('<head>', '<head>\n    ' + metaTag);
+  }
+  
+  // If no <head> tag, try to inject before <html>
+  if (html.includes('<html>')) {
+    return html.replace('<html>', '<html>\n  ' + metaTag);
+  }
+  
+  // If neither, just prepend to the document
+  return metaTag + '\n' + html;
 }
