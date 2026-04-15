@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>corslet — free cors proxy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080810;
+      --surface: #0f0f1a;
+      --surface2: #141422;
+      --border: #1c1c2e;
+      --border2: #252540;
+      --accent: #4dffaa;
+      --accent2: #4db8ff;
+      --accent3: #ff6b6b;
+      --text: #eaeaf5;
+      --muted: #5a5a75;
+      --muted2: #8888a8;
+      --code-bg: #0b0b15;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 3rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(8,8,16,0.88);
+      backdrop-filter: blur(16px);
+      z-index: 100;
+    }
+
+    .logo { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.04em; }
+    .logo span { color: var(--accent); }
+
+    nav ul { list-style: none; display: flex; gap: 0.25rem; align-items: center; }
+
+    nav ul a {
+      color: var(--muted2);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.45rem 0.9rem;
+      border-radius: 5px;
+      transition: color 0.2s, background 0.2s;
+    }
+    nav ul a:hover { color: var(--text); background: var(--surface); }
+    .nav-cta { background: var(--accent) !important; color: var(--bg) !important; font-weight: 700 !important; }
+    .nav-cta:hover { background: #6fffbb !important; }
+
+    /* HERO */
+    .hero {
+      padding: 7rem 3rem 5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.35;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 40%, transparent 100%);
+    }
+
+    .hero-glow {
+      position: absolute;
+      top: -200px; right: -100px;
+      width: 700px; height: 700px;
+      background: radial-gradient(ellipse, rgba(77,255,170,0.08) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .hero-inner { position: relative; max-width: 900px; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid rgba(77,255,170,0.25);
+      color: var(--accent);
+      padding: 0.3rem 0.85rem;
+      border-radius: 100px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.5s ease both;
+    }
+    .badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+    h1 {
+      font-size: clamp(3.5rem, 9vw, 7.5rem);
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      margin-bottom: 1.75rem;
+      animation: fadeUp 0.5s 0.08s ease both;
+    }
+    h1 em { font-style: normal; color: var(--accent); }
+
+    .subtitle {
+      font-family: 'DM Mono', monospace;
+      font-size: 1rem;
+      font-weight: 300;
+      color: var(--muted2);
+      max-width: 480px;
+      line-height: 1.75;
+      margin-bottom: 2.5rem;
+      animation: fadeUp 0.5s 0.16s ease both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+      margin-bottom: 3.5rem;
+      animation: fadeUp 0.5s 0.22s ease both;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 0.8rem 1.8rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+      display: inline-block;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(77,255,170,0.3); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border2);
+      padding: 0.8rem 1.8rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+      display: inline-block;
+    }
+    .btn-ghost:hover { border-color: var(--muted2); background: var(--surface); }
+
+    .url-pill {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 0.85rem 1.2rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      max-width: 100%;
+      overflow: hidden;
+      animation: fadeUp 0.5s 0.3s ease both;
+    }
+    .url-pill .method { color: var(--accent); white-space: nowrap; }
+    .url-pill .domain { color: var(--accent2); }
+    .url-pill .target { color: var(--text); }
+    .url-pill .sep { color: var(--muted); }
+
+    /* STATS */
+    .stats {
+      display: flex;
+      gap: 2.5rem;
+      padding: 2rem 3rem;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-wrap: wrap;
+    }
+    .stat-value { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.04em; }
+    .stat-label { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.15rem; }
+
+    /* SECTION SHARED */
+    .section-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.75rem;
+    }
+    .section-sub {
+      font-family: 'DM Mono', monospace;
+      color: var(--muted2);
+      font-size: 0.88rem;
+      max-width: 500px;
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+    }
+
+    /* LIVE DEMO */
+    .demo-section {
+      padding: 6rem 3rem;
+      position: relative;
+    }
+    .demo-section::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.3;
+    }
+
+    .demo-box {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      overflow: hidden;
+      max-width: 880px;
+    }
+
+    .demo-topbar {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .demo-title-bar {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .demo-input-row {
+      display: flex;
+      align-items: stretch;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .demo-method-select {
+      background: rgba(77,255,170,0.07);
+      border: none;
+      border-right: 1px solid var(--border);
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 0 1rem;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      min-width: 80px;
+    }
+
+    .demo-url-prefix {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      padding: 1rem 0.5rem 1rem 1rem;
+      white-space: nowrap;
+      background: var(--code-bg);
+      border-right: 1px solid var(--border);
+      user-select: none;
+    }
+    .demo-url-prefix span { color: var(--accent2); }
+
+    .demo-url-input {
+      flex: 1;
+      background: var(--code-bg);
+      border: none;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+      padding: 1rem 0.75rem;
+      outline: none;
+      min-width: 0;
+    }
+    .demo-url-input::placeholder { color: var(--muted); }
+
+    .demo-send-btn {
+      background: var(--accent);
+      border: none;
+      color: var(--bg);
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 0 1.5rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .demo-send-btn:hover { background: #6fffbb; }
+    .demo-send-btn:disabled { background: var(--muted); cursor: not-allowed; opacity: 0.6; }
+
+    .demo-options {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+      padding: 0.35rem 1rem;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .demo-opt-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .header-row {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+      flex-wrap: wrap;
+      background: var(--code-bg);
+    }
+
+    .mini-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      padding: 0.4rem 0.7rem;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .mini-input:focus { border-color: var(--accent2); }
+    .mini-input::placeholder { color: var(--muted); }
+
+    .add-header-btn {
+      background: transparent;
+      border: 1px dashed var(--border2);
+      color: var(--muted2);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .add-header-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    #bodyRow { border-bottom: 1px solid var(--border); }
+    .body-label {
+      padding: 0.4rem 1rem;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+    #reqBody {
+      width: 100%;
+      background: var(--code-bg);
+      border: none;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      padding: 0.85rem 1rem;
+      outline: none;
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.7;
+    }
+
+    /* Response */
+    .demo-response { min-height: 200px; position: relative; }
+
+    .res-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .res-tab {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      padding: 0.65rem 1.1rem;
+      cursor: pointer;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .res-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .res-status-bar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+    .status-pill { padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 500; }
+    .status-2xx { background: rgba(77,255,170,0.12); color: var(--accent); }
+    .status-4xx { background: rgba(255,107,107,0.12); color: var(--accent3); }
+    .status-err { background: rgba(255,107,107,0.12); color: var(--accent3); }
+
+    .res-body {
+      padding: 1.25rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.8;
+      color: var(--muted2);
+      max-height: 360px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      display: none;
+    }
+    .res-body.active { display: block; }
+
+    .res-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      min-height: 220px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    .res-loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      min-height: 220px;
+      color: var(--muted2);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .json-key { color: var(--accent2); }
+    .json-str { color: var(--accent); }
+    .json-num { color: #ffb347; }
+    .json-bool { color: #c792ea; }
+    .json-null { color: var(--muted2); }
+
+    /* HOW */
+    .how-section {
+      padding: 6rem 3rem;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+    .how-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 3rem;
+    }
+    .how-card { background: var(--surface); padding: 2.25rem; }
+    .how-num { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 1.5rem; }
+    .how-card h3 { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.6rem; }
+    .how-card p { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--muted2); line-height: 1.7; }
+
+    /* CODE */
+    .code-section { padding: 6rem 3rem; border-top: 1px solid var(--border); }
+    .code-tabs { display: flex; border-bottom: 1px solid var(--border); overflow-x: auto; }
+    .ctab {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      padding: 0.7rem 1.2rem;
+      cursor: pointer;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .ctab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .code-wrapper {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      max-width: 740px;
+    }
+    .cblock { display: none; padding: 1.5rem 1.75rem; font-family: 'DM Mono', monospace; font-size: 0.8rem; line-height: 1.9; overflow-x: auto; }
+    .cblock.active { display: block; }
+    .kw { color: #c792ea; }
+    .fn { color: var(--accent2); }
+    .str { color: var(--accent); }
+    .cm { color: #3d3d5c; }
+    .vr { color: #ffb347; }
+
+    /* FEATURES */
+    .features-section { padding: 6rem 3rem; background: var(--surface); border-top: 1px solid var(--border); }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-top: 3rem; }
+    .feat { border: 1px solid var(--border); border-radius: 10px; padding: 1.75rem; background: var(--bg); transition: border-color 0.2s, transform 0.2s; }
+    .feat:hover { border-color: rgba(77,255,170,0.25); transform: translateY(-3px); }
+    .feat-icon { font-size: 1.4rem; margin-bottom: 0.85rem; }
+    .feat h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .feat p { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--muted2); line-height: 1.65; }
+
+    /* CTA */
+    .cta-section { padding: 8rem 3rem; text-align: center; position: relative; overflow: hidden; border-top: 1px solid var(--border); }
+    .cta-section::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 60%, rgba(77,255,170,0.06) 0%, transparent 65%); }
+    .cta-section h2 { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 800; letter-spacing: -0.04em; margin-bottom: 1.25rem; position: relative; }
+    .cta-section p { font-family: 'DM Mono', monospace; color: var(--muted2); font-size: 0.88rem; margin-bottom: 2.5rem; position: relative; }
+
+    footer { border-top: 1px solid var(--border); padding: 1.75rem 3rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .footer-logo { font-weight: 800; font-size: 1rem; letter-spacing: -0.03em; }
+    .footer-logo span { color: var(--accent); }
+    footer p { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+    footer ul { list-style: none; display: flex; gap: 1.5rem; }
+    footer ul a { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    footer ul a:hover { color: var(--text); }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    @media (max-width: 768px) {
+      nav { padding: 1rem 1.25rem; }
+      nav ul { display: none; }
+      .hero, .demo-section, .how-section, .code-section, .features-section, .cta-section { padding-left: 1.25rem; padding-right: 1.25rem; }
+      .stats { padding: 1.5rem 1.25rem; gap: 1.5rem; }
+      footer { padding: 1.5rem 1.25rem; }
+      .demo-url-prefix { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="logo">cors<span>let</span></div>
+    <ul>
+      <li><a href="#demo">Demo</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#code">Usage</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#demo" class="nav-cta">Try it →</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-grid-bg"></div>
+    <div class="hero-glow"></div>
+    <div class="hero-inner">
+      <div class="badge">free · open · no signup needed</div>
+      <h1>Proxy any<br>request.<br><em>Instantly.</em></h1>
+      <p class="subtitle">
+        corslet kills CORS errors for good. Prefix any URL with our endpoint and your browser gets the headers it needs — zero config.
+      </p>
+      <div class="hero-actions">
+        <a href="#demo" class="btn-primary">Try the live demo</a>
+        <a href="#code" class="btn-ghost">See code examples</a>
+      </div>
+      <div class="url-pill">
+        <span class="method">GET</span>
+        <span><span class="domain">corslet.ethh.workers.dev</span><span class="sep">/?url=</span><span class="target">https://your-api.com/endpoint</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div><div class="stat-value">0ms</div><div class="stat-label">Setup time</div></div>
+    <div><div class="stat-value">&#8734;</div><div class="stat-label">Rate limit</div></div>
+    <div><div class="stat-value">Free</div><div class="stat-label">Always &amp; forever</div></div>
+    <div><div class="stat-value">All</div><div class="stat-label">HTTP methods</div></div>
+    <div><div class="stat-value">Any</div><div class="stat-label">Content-type</div></div>
+  </div>
+
+  <!-- LIVE DEMO -->
+  <section class="demo-section" id="demo">
+    <div class="section-tag">// live demo</div>
+    <h2 class="section-title">Try it right now.</h2>
+    <p class="section-sub">Enter any URL below and hit Send. corslet will proxy the request server-side and show you the real response.</p>
+
+    <div class="demo-box">
+      <div class="demo-topbar">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+        <div class="demo-title-bar">corslet — request runner</div>
+      </div>
+
+      <div class="demo-input-row">
+        <select class="demo-method-select" id="demoMethod">
+          <option>GET</option>
+          <option>POST</option>
+          <option>PUT</option>
+          <option>PATCH</option>
+          <option>DELETE</option>
+        </select>
+        <div class="demo-url-prefix">corslet.ethh.workers.dev/<span>?url=</span></div>
+        <input class="demo-url-input" id="demoUrl" type="text"
+          placeholder="https://jsonplaceholder.typicode.com/posts/1"
+          value="https://jsonplaceholder.typicode.com/posts/1" />
+        <button class="demo-send-btn" id="sendBtn" onclick="sendRequest()">Send &#8594;</button>
+      </div>
+
+      <div class="demo-options">
+        <div class="demo-opt-label">Custom headers <span id="headerCount" style="color:var(--muted2)">(none)</span></div>
+        <button class="add-header-btn" onclick="addHeaderRow()">+ Add header</button>
+      </div>
+
+      <div id="headerRows"></div>
+
+      <div id="bodyRow" style="display:none;">
+        <div class="body-label">request body (JSON)</div>
+        <textarea id="reqBody" placeholder='{"key": "value"}'></textarea>
+      </div>
+
+      <div class="demo-response">
+        <div class="res-tabs" id="resTabs" style="display:none;">
+          <button class="res-tab active" onclick="switchResTab('body',this)">Body</button>
+          <button class="res-tab" onclick="switchResTab('headers',this)">Headers</button>
+          <button class="res-tab" onclick="switchResTab('raw',this)">Raw</button>
+        </div>
+        <div class="res-status-bar" id="resStatusBar" style="display:none;">
+          <span id="statusPill" class="status-pill"></span>
+          <span id="resTime"></span>
+          <span id="resSize"></span>
+          <span style="margin-left:auto;cursor:pointer;color:var(--accent2);" onclick="copyResponse()">copy</span>
+        </div>
+
+        <div class="res-placeholder" id="resPlaceholder">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+            <path d="M12 19V5M5 12l7-7 7 7"/>
+          </svg>
+          <span>Hit Send to make a proxied request</span>
+        </div>
+
+        <div class="res-loading" id="resLoading">
+          <div class="spinner"></div>
+          <span>Proxying request...</span>
+        </div>
+
+        <pre class="res-body active" id="resBody"></pre>
+        <pre class="res-body" id="resHeaders"></pre>
+        <pre class="res-body" id="resRaw"></pre>
+      </div>
+    </div>
+
+    <div style="margin-top:1.25rem;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+      <span style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);">quick load:</span>
+      <button class="add-header-btn" onclick="quickLoad('https://jsonplaceholder.typicode.com/posts/1','GET')">JSONPlaceholder post</button>
+      <button class="add-header-btn" onclick="quickLoad('https://jsonplaceholder.typicode.com/users','GET')">users list</button>
+      <button class="add-header-btn" onclick="quickLoad('https://api.github.com/zen','GET')">GitHub zen</button>
+      <button class="add-header-btn" onclick="quickLoad('https://httpbin.org/get','GET')">httpbin GET</button>
+      <button class="add-header-btn" onclick="quickLoad('https://httpbin.org/post','POST')">httpbin POST</button>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section" id="how">
+    <div class="section-tag">// how it works</div>
+    <h2 class="section-title">Three steps. Done.</h2>
+    <p class="section-sub">No packages, no installs, no tokens. Just a URL transformation.</p>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-num">01 —</div>
+        <h3>Prefix your URL</h3>
+        <p>Prepend <code style="color:var(--accent2)">https://corslet.ethh.workers.dev/?url=</code> to any target URL.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">02 —</div>
+        <h3>We proxy it</h3>
+        <p>corslet forwards your full request — method, headers, body — to the target server from our Cloudflare edge.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">03 —</div>
+        <h3>CORS headers added</h3>
+        <p>The response is returned with <code style="color:var(--accent2)">Access-Control-Allow-Origin: *</code> so your browser is happy.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CODE EXAMPLES -->
+  <section class="code-section" id="code">
+    <div class="section-tag">// usage</div>
+    <h2 class="section-title">Copy. Paste. Ship.</h2>
+    <p class="section-sub">Works with any HTTP client you're already using.</p>
+
+    <div style="max-width:740px;margin-top:2rem;">
+      <div class="code-tabs">
+        <button class="ctab active" onclick="showCtab('fetch',this)">fetch</button>
+        <button class="ctab" onclick="showCtab('axios',this)">axios</button>
+        <button class="ctab" onclick="showCtab('curl',this)">curl</button>
+        <button class="ctab" onclick="showCtab('jquery',this)">$.ajax</button>
+        <button class="ctab" onclick="showCtab('python',this)">python</button>
+      </div>
+      <div class="code-wrapper">
+
+        <pre class="cblock active" id="ctab-fetch"><span class="cm">// &#10003; One-line fix for CORS errors</span>
+<span class="kw">const</span> <span class="vr">PROXY</span> = <span class="str">'https://corslet.ethh.workers.dev/?url='</span>;
+
+<span class="kw">const</span> <span class="vr">res</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="vr">PROXY</span> + <span class="str">'https://api.example.com/data'</span>);
+<span class="kw">const</span> <span class="vr">data</span> = <span class="kw">await</span> <span class="vr">res</span>.<span class="fn">json</span>();
+
+<span class="cm">// With custom headers</span>
+<span class="kw">const</span> <span class="vr">res2</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="vr">PROXY</span> + <span class="str">'https://api.example.com/secure'</span>, {
+  <span class="vr">headers</span>: { <span class="str">'Authorization'</span>: <span class="str">'Bearer your-token'</span> }
+});</pre>
+
+        <pre class="cblock" id="ctab-axios"><span class="kw">import</span> axios <span class="kw">from</span> <span class="str">'axios'</span>;
+
+<span class="kw">const</span> <span class="vr">PROXY</span> = <span class="str">'https://corslet.ethh.workers.dev/?url='</span>;
+
+<span class="cm">// GET</span>
+<span class="kw">const</span> { <span class="vr">data</span> } = <span class="kw">await</span> axios.<span class="fn">get</span>(<span class="vr">PROXY</span> + <span class="str">'https://api.example.com/data'</span>);
+
+<span class="cm">// POST</span>
+<span class="kw">await</span> axios.<span class="fn">post</span>(<span class="vr">PROXY</span> + <span class="str">'https://api.example.com/submit'</span>, {
+  <span class="vr">name</span>: <span class="str">'hello'</span>
+});</pre>
+
+        <pre class="cblock" id="ctab-curl">curl "https://corslet.ethh.workers.dev/?url=https://api.example.com/data"
+
+# With authorization header
+curl -H "Authorization: Bearer token" \
+  "https://corslet.ethh.workers.dev/?url=https://api.example.com/secure"
+
+# POST with body
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"key":"value"}' \
+  "https://corslet.ethh.workers.dev/?url=https://api.example.com/data"</pre>
+
+        <pre class="cblock" id="ctab-jquery"><span class="kw">const</span> <span class="vr">PROXY</span> = <span class="str">'https://corslet.ethh.workers.dev/?url='</span>;
+
+$.<span class="fn">ajax</span>({
+  <span class="vr">url</span>: <span class="vr">PROXY</span> + <span class="str">'https://api.example.com/data'</span>,
+  <span class="vr">method</span>: <span class="str">'GET'</span>,
+  <span class="vr">success</span>: <span class="kw">function</span>(<span class="vr">data</span>) {
+    console.<span class="fn">log</span>(<span class="vr">data</span>);
+  }
+});</pre>
+
+        <pre class="cblock" id="ctab-python"><span class="kw">import</span> requests
+
+<span class="vr">PROXY</span> = <span class="str">"https://corslet.ethh.workers.dev/?url="</span>
+
+<span class="cm"># GET</span>
+<span class="vr">r</span> = requests.<span class="fn">get</span>(<span class="vr">PROXY</span> + <span class="str">"https://api.example.com/data"</span>)
+<span class="fn">print</span>(<span class="vr">r</span>.json())
+
+<span class="cm"># POST</span>
+<span class="vr">r</span> = requests.<span class="fn">post</span>(
+  <span class="vr">PROXY</span> + <span class="str">"https://api.example.com/submit"</span>,
+  json={<span class="str">"key"</span>: <span class="str">"value"</span>}
+)</pre>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features-section" id="features">
+    <div class="section-tag">// features</div>
+    <h2 class="section-title">Built for developers.</h2>
+    <p class="section-sub">Everything you need to bypass CORS without compromising your workflow.</p>
+    <div class="features-grid">
+      <div class="feat"><div class="feat-icon">&#9889;</div><h3>Zero config</h3><p>No API keys, no accounts, no setup. Just a URL prefix and you're done.</p></div>
+      <div class="feat"><div class="feat-icon">&#128257;</div><h3>All HTTP methods</h3><p>GET, POST, PUT, PATCH, DELETE — all supported with full body and header passthrough.</p></div>
+      <div class="feat"><div class="feat-icon">&#128274;</div><h3>Headers forwarded</h3><p>Authorization, Content-Type, and all custom headers pass through untouched.</p></div>
+      <div class="feat"><div class="feat-icon">&#127758;</div><h3>Any origin</h3><p>Works from localhost, production deployments, or browser extensions.</p></div>
+      <div class="feat"><div class="feat-icon">&#128230;</div><h3>JSON &amp; binary</h3><p>Proxies any content-type — JSON, images, XML, text, or binary data.</p></div>
+      <div class="feat"><div class="feat-icon">&#128994;</div><h3>Free forever</h3><p>No premium tier, no paywalls. Open and free for personal and commercial use.</p></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <h2>Ship without<br><em style="color:var(--accent)">CORS errors.</em></h2>
+    <p>One URL change. That's all it takes.</p>
+    <a href="#demo" class="btn-primary" style="font-size:0.95rem;padding:0.95rem 2.5rem;position:relative;">Open the demo &#8594;</a>
+  </section>
+
+  <footer>
+    <div class="footer-logo">cors<span>let</span></div>
+    <p>Powered by Cloudflare Workers</p>
+    <ul>
+      <li><a href="#">GitHub</a></li>
+      <li><a href="#">Docs</a></li>
+      <li><a href="#">Status</a></li>
+    </ul>
+  </footer>
+
+  <script>
+    const PROXY_BASE = 'https://corslet.ethh.workers.dev/?url=';
+    let lastRawText = '';
+    let lastResHeaders = {};
+    let headerCount = 0;
+
+    document.getElementById('demoMethod').addEventListener('change', function() {
+      document.getElementById('bodyRow').style.display =
+        ['POST','PUT','PATCH'].includes(this.value) ? 'block' : 'none';
+    });
+
+    function addHeaderRow() {
+      headerCount++;
+      const c = document.getElementById('headerRows');
+      const row = document.createElement('div');
+      row.className = 'header-row';
+      row.id = 'hrow-' + headerCount;
+      row.innerHTML =
+        '<input class="mini-input" placeholder="Header name" style="width:180px;" id="hname-' + headerCount + '"/>' +
+        '<span style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:0.78rem;">:</span>' +
+        '<input class="mini-input" placeholder="Value" style="flex:1;" id="hval-' + headerCount + '"/>' +
+        '<button onclick="removeHeader(' + headerCount + ')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:0 0.25rem;line-height:1;">&#215;</button>';
+      c.appendChild(row);
+      updateHeaderCount();
+    }
+
+    function removeHeader(id) {
+      document.getElementById('hrow-' + id)?.remove();
+      updateHeaderCount();
+    }
+
+    function updateHeaderCount() {
+      const n = document.querySelectorAll('#headerRows .header-row').length;
+      document.getElementById('headerCount').textContent = n ? '(' + n + ')' : '(none)';
+    }
+
+    function getCustomHeaders() {
+      const h = {};
+      document.querySelectorAll('#headerRows .header-row').forEach(function(row) {
+        const id = row.id.replace('hrow-','');
+        const name = document.getElementById('hname-'+id)?.value.trim();
+        const val  = document.getElementById('hval-'+id)?.value.trim();
+        if (name && val) h[name] = val;
+      });
+      return h;
+    }
+
+    function quickLoad(url, method) {
+      document.getElementById('demoUrl').value = url;
+      document.getElementById('demoMethod').value = method;
+      document.getElementById('bodyRow').style.display =
+        ['POST','PUT','PATCH'].includes(method) ? 'block' : 'none';
+    }
+
+    async function sendRequest() {
+      const url = document.getElementById('demoUrl').value.trim();
+      if (!url) { document.getElementById('demoUrl').focus(); return; }
+
+      const method = document.getElementById('demoMethod').value;
+      const bodyText = document.getElementById('reqBody').value.trim();
+      const customHeaders = getCustomHeaders();
+
+      document.getElementById('resPlaceholder').style.display = 'none';
+      document.getElementById('resLoading').style.display = 'flex';
+      document.getElementById('resTabs').style.display = 'none';
+      document.getElementById('resStatusBar').style.display = 'none';
+      document.querySelectorAll('.res-body').forEach(function(b) {
+        b.classList.remove('active'); b.textContent = ''; b.innerHTML = '';
+      });
+      document.getElementById('sendBtn').disabled = true;
+
+      const t0 = performance.now();
+
+      try {
+        const proxied = PROXY_BASE + encodeURIComponent(url);
+        const opts = { method: method };
+        const headers = Object.assign({}, customHeaders);
+
+        if (['POST','PUT','PATCH'].includes(method) && bodyText) {
+          opts.body = bodyText;
+          if (!headers['Content-Type']) headers['Content-Type'] = 'application/json';
+        }
+
+        if (Object.keys(headers).length) opts.headers = headers;
+
+        const res = await fetch(proxied, opts);
+        const elapsed = Math.round(performance.now() - t0);
+        const raw = await res.text();
+        lastRawText = raw;
+
+        lastResHeaders = {};
+        res.headers.forEach(function(v, k) { lastResHeaders[k] = v; });
+
+        const ct = res.headers.get('content-type') || '';
+        let formatted = escapeHtml(raw);
+        if (ct.includes('json')) {
+          try { formatted = syntaxHighlight(JSON.stringify(JSON.parse(raw), null, 2)); }
+          catch(e) {}
+        }
+
+        const code = res.status;
+        const pill = document.getElementById('statusPill');
+        pill.textContent = code + ' ' + res.statusText;
+        pill.className = 'status-pill ' + (code < 300 ? 'status-2xx' : 'status-err');
+
+        document.getElementById('resTime').textContent = elapsed + 'ms';
+        document.getElementById('resSize').textContent = formatBytes(raw.length);
+
+        document.getElementById('resBody').innerHTML = formatted;
+        document.getElementById('resBody').classList.add('active');
+        document.getElementById('resHeaders').textContent =
+          Object.entries(lastResHeaders).map(function(e) { return e[0] + ': ' + e[1]; }).join('\n');
+        document.getElementById('resRaw').textContent = raw;
+
+        document.getElementById('resLoading').style.display = 'none';
+        document.getElementById('resTabs').style.display = 'flex';
+        document.getElementById('resStatusBar').style.display = 'flex';
+
+        document.querySelectorAll('.res-tab').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.res-tab')[0].classList.add('active');
+
+      } catch(err) {
+        document.getElementById('resLoading').style.display = 'none';
+        document.getElementById('resPlaceholder').style.display = 'flex';
+        document.getElementById('resPlaceholder').innerHTML =
+          '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+          '<span style="color:var(--accent3)">Error: ' + err.message + '</span>' +
+          '<span style="font-size:0.72rem;color:var(--muted)">Check the URL and try again</span>';
+      } finally {
+        document.getElementById('sendBtn').disabled = false;
+      }
+    }
+
+    function switchResTab(name, el) {
+      document.querySelectorAll('.res-tab').forEach(function(t) { t.classList.remove('active'); });
+      if (el) el.classList.add('active');
+      document.querySelectorAll('.res-body').forEach(function(b) { b.classList.remove('active'); });
+      var map = { body: 'resBody', headers: 'resHeaders', raw: 'resRaw' };
+      document.getElementById(map[name]).classList.add('active');
+    }
+
+    function copyResponse() {
+      navigator.clipboard.writeText(lastRawText).then(function() {
+        var btn = document.querySelector('[onclick="copyResponse()"]');
+        btn.textContent = 'copied!';
+        btn.style.color = 'var(--accent)';
+        setTimeout(function() { btn.textContent = 'copy'; btn.style.color = ''; }, 1500);
+      });
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function syntaxHighlight(json) {
+      var escaped = escapeHtml(json);
+      return escaped.replace(
+        /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+        function(match) {
+          if (/^"/.test(match)) {
+            if (/:$/.test(match)) return '<span class="json-key">' + match + '</span>';
+            return '<span class="json-str">' + match + '</span>';
+          }
+          if (/true|false/.test(match)) return '<span class="json-bool">' + match + '</span>';
+          if (/null/.test(match)) return '<span class="json-null">' + match + '</span>';
+          return '<span class="json-num">' + match + '</span>';
+        }
+      );
+    }
+
+    function formatBytes(b) {
+      if (b < 1024) return b + ' B';
+      return (b / 1024).toFixed(1) + ' KB';
+    }
+
+    function showCtab(name, el) {
+      document.querySelectorAll('.cblock').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.ctab').forEach(function(t) { t.classList.remove('active'); });
+      document.getElementById('ctab-' + name).classList.add('active');
+      el.classList.add('active');
+    }
+
+    document.getElementById('demoUrl').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') sendRequest();
+    });
+  </script>
+</body>
+</html>
