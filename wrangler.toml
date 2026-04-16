@@ -1,5 +1,5 @@
 name = "corslet"
-main = "index.html"
+main = "/index.html"
 compatibility_date = "2026-04-11"
 workers_dev = true
 
