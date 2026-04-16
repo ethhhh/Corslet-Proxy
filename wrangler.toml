@@ -1,5 +1,5 @@
 name = "corslet"
-main = "script.js"
+main = "src/script.js"
 compatibility_date = "2026-04-11"
 workers_dev = true
 
