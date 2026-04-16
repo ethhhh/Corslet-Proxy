@@ -4,11 +4,34 @@ export default {
 
     // Serve index.html for root path
     if (url.pathname === '/') {
-      return new Response(await env.ASSETS.fetch(request), {
-        headers: {
-          'Content-Type': 'text/html',
-        },
-      });
+      try {
+        const indexHtml = await env.ASSETS.fetch(new Request('https://example.com/index.html'));
+        return new Response(indexHtml.body, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+          },
+        });
+      } catch (error) {
+        // Fallback if ASSETS binding doesn't work
+        return new Response(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>CORS Proxy</title>
+          </head>
+          <body>
+            <h1>CORS Proxy is Running</h1>
+            <p>Use: https://corslet.ethh.workers.dev/api?url=https://example.com</p>
+          </body>
+          </html>
+        `, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+          },
+        });
+      }
     }
 
     // CORS proxy only runs on /api path
