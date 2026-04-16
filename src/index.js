@@ -99,12 +99,12 @@ function rewriteUrls(html, targetUrl, proxyUrl) {
   const targetOrigin = new URL(targetUrl).origin;
   const proxyOrigin = new URL(proxyUrl).origin;
 
-  // Rewrite href attributes
+  // Rewrite relative href attributes
   html = html.replace(/href=["'](?!(?:https?:|\/\/|data:|javascript:|mailto:))/g, (match) => {
     return match.slice(0, -1) + proxyOrigin + '/?url=' + encodeURIComponent(targetOrigin) + '/';
   });
 
-  // Rewrite src attributes
+  // Rewrite relative src attributes
   html = html.replace(/src=["'](?!(?:https?:|\/\/|data:|javascript:))/g, (match) => {
     return match.slice(0, -1) + proxyOrigin + '/?url=' + encodeURIComponent(targetOrigin) + '/';
   });
