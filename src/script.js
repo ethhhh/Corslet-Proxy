@@ -5,7 +5,7 @@ export default {
 
     if (!targetUrl) {
       return new Response(
-        JSON.stringify({ error: 'Missing "url" query parameter' }),
+        JSON.stringify({ error: 'Missing ?url= param in the link!' }),
         { 
           status: 400, 
           headers: { 'Content-Type': 'application/json' } 
@@ -13,10 +13,10 @@ export default {
       );
     }
 
-    // Validate URL format
+ 
     if (!isValidUrl(targetUrl)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid URL format' }),
+        JSON.stringify({ error: 'Wrong URL format' }),
         { 
           status: 400, 
           headers: { 'Content-Type': 'application/json' } 
@@ -24,7 +24,6 @@ export default {
       );
     }
 
-    // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
@@ -38,31 +37,27 @@ export default {
     }
 
     try {
-      // Determine if request has a body
+
       let body = null;
       if (!['GET', 'HEAD'].includes(request.method)) {
         body = await request.text();
       }
 
-      // Create forward request
       const forwardRequest = new Request(targetUrl, {
         method: request.method,
         headers: request.headers,
         body: body,
       });
 
-      // Fetch the target
       const response = await fetch(forwardRequest);
       let responseBody = await response.text();
 
-      // Rewrite URLs in HTML responses and inject meta tag
       const contentType = response.headers.get('Content-Type') || '';
       if (contentType.includes('text/html')) {
         responseBody = rewriteUrls(responseBody, targetUrl, request.url);
         responseBody = injectMetaTag(responseBody);
       }
 
-      // Build response headers with CORS
       const responseHeaders = new Headers(response.headers);
       responseHeaders.set('Access-Control-Allow-Origin', '*');
       responseHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
@@ -99,17 +94,16 @@ function rewriteUrls(html, targetUrl, proxyUrl) {
   const targetOrigin = new URL(targetUrl).origin;
   const proxyOrigin = new URL(proxyUrl).origin;
 
-  // Rewrite relative href attributes
   html = html.replace(/href=["'](?!(?:https?:|\/\/|data:|javascript:|mailto:))/g, (match) => {
     return match.slice(0, -1) + proxyOrigin + '/?url=' + encodeURIComponent(targetOrigin) + '/';
   });
 
-  // Rewrite relative src attributes
+
   html = html.replace(/src=["'](?!(?:https?:|\/\/|data:|javascript:))/g, (match) => {
     return match.slice(0, -1) + proxyOrigin + '/?url=' + encodeURIComponent(targetOrigin) + '/';
   });
 
-  // Rewrite absolute URLs starting with /
+
   html = html.replace(/(?:href|src)=["'](\/[^"']*)/g, (match, path) => {
     return match.split('=')[0] + '="' + proxyOrigin + '/?url=' + encodeURIComponent(targetOrigin + path);
   });
@@ -120,16 +114,16 @@ function rewriteUrls(html, targetUrl, proxyUrl) {
 function injectMetaTag(html) {
   const metaTag = '<meta name="google-site-verification" content="QZePxQi84t70H06b6jHGiZ51fbfFsvLCQTZ7drDH3DA" />';
   
-  // Try to inject after <head> tag
+
   if (html.includes('<head>')) {
     return html.replace('<head>', '<head>\n    ' + metaTag);
   }
   
-  // If no <head> tag, try to inject before <html>
+
   if (html.includes('<html>')) {
     return html.replace('<html>', '<html>\n  ' + metaTag);
   }
   
-  // If neither, just prepend to the document
+
   return metaTag + '\n' + html;
 }
